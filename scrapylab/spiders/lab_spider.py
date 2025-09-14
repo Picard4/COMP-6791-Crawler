@@ -2,6 +2,9 @@ from pathlib import Path
 
 import scrapy
 import sys
+import re
+import tldextract
+from scrapy.linkextractors import LinkExtractor
 
 class LabSpider(scrapy.Spider):
     name = "lab"
@@ -16,20 +19,32 @@ class LabSpider(scrapy.Spider):
             sys.exit()
         self.url = url
         
+        self.domains = None
         if domains is not None:
             domains = domains.split(",")
             if not self.is_list_of_strings(domains):
                 print(arg_error + "Your domains should be in this format: 'domainOne,domainTwo,domainThree'")
                 sys.exit()
-        self.domains = domains
+            self.domains = domains
+            if not self.is_url_approved(url):
+                print(arg_error + "Your starting url is not approved by your sent domain list!")
+                print("Your starting url: " + url)
+                print("Your starting url's domain: " + tldextract.extract(url).domain)
+                print("Your domain list: " + str(domains))
+                sys.exit()
 
         try:
-            max_files = int(max_files)
+            self.max_files = int(max_files)
         except ValueError:
             print(arg_error + "The max_files must be an integer.")
             sys.exit()
-        self.max_files = max_files
-        self.downloaded_files = 0
+        if self.max_files < 1:
+            print(arg_error + "Minimum value for max_files is 1.")
+            sys.exit()
+
+        self.link_list = [url]
+        self.link_extractor = LinkExtractor()
+        self.next_link_index = 0
     
     def is_list_of_strings(self, obj):
         if not isinstance(obj, list) or not obj:
@@ -40,28 +55,35 @@ class LabSpider(scrapy.Spider):
         yield scrapy.Request(self.url, self.parse)
 
     def parse(self, response):
-        # TODO: Change this to links. We apparently need to download HTML files, then use BeautifulSoup to parse them into the 'core' text.
-        # Each webpage is a new html file to download.
-        for quote in response.css("div.quote"):
-            yield {
-                "text": quote.css("span.text::text").get(),
-                "author": quote.css("small.author::text").get(),
-            }
+        # Save the webpage as an HTML file.
+        encoding = 'utf-8'
+        html_content = response.body.decode(encoding)
+        filename = f'File{self.next_link_index + 1}-{re.sub(r"[#%&{}\\<>*?/ $!'\":@+`|=.]", '_', response.url)}.html'
+        with open(filename, 'w', encoding=encoding) as f:
+            f.write(html_content)
+            print("Saved new file: " + filename)
 
-        next_page = response.css("li.next a::attr(href)").get()
-        if next_page is not None and self.is_url_approved(next_page):
-            yield response.follow(next_page, self.parse)
+        # Add any new links on the page to the link_list.
+        # The link_list has a max capacity (max_files) - stop adding links if this capacity is reached.
+        if len(self.link_list) < self.max_files:
+            for link in self.link_extractor.extract_links(response):
+                if link.url not in self.link_list and self.is_url_approved(link.url):
+                    self.link_list.append(link.url)
+                    if len(self.link_list) >= self.max_files:
+                        break
+        
+        # Advance to the next link... if there is one in the link_list.
+        self.next_link_index += 1
+        if self.next_link_index < len(self.link_list):
+            yield response.follow(self.link_list[self.next_link_index], self.parse)
 
-    def is_url_approved(self, next_page):
-        domains = self.domains
-        print(domains)
-        print(next_page)
-
-        if domains is None:
+    def is_url_approved(self, url):
+        if self.domains is None:
             return True
         
-        for domain in domains:
-            if True:
+        extracted_url = tldextract.extract(url)
+        for trusted_domain in self.domains:
+            if trusted_domain.casefold() == extracted_url.domain.casefold():
                 return True
 
         return False
