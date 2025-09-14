@@ -3,6 +3,7 @@ from pathlib import Path
 import scrapy
 import sys
 import re
+import os
 import tldextract
 from scrapy.linkextractors import LinkExtractor
 
@@ -45,6 +46,11 @@ class LabSpider(scrapy.Spider):
         self.link_list = [url]
         self.link_extractor = LinkExtractor()
         self.next_link_index = 0
+
+        self.output_dir = "HTML-Files"
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+
     
     def is_list_of_strings(self, obj):
         if not isinstance(obj, list) or not obj:
@@ -59,7 +65,7 @@ class LabSpider(scrapy.Spider):
         encoding = 'utf-8'
         html_content = response.body.decode(encoding)
         filename = f'File{self.next_link_index + 1}-{re.sub(r"[#%&{}\\<>*?/ $!'\":@+`|=.]", '_', response.url)}.html'
-        with open(filename, 'w', encoding=encoding) as f:
+        with open(os.path.join(self.output_dir, filename), 'w', encoding=encoding) as f:
             f.write(html_content)
             print("Saved new file: " + filename)
 
