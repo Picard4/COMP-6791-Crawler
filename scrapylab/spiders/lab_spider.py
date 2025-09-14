@@ -63,7 +63,7 @@ class LabSpider(scrapy.Spider):
     def parse(self, response):
         # Save the webpage as an HTML file.
         encoding = 'utf-8'
-        html_content = response.body.decode(encoding)
+        html_content = response.body.decode(encoding, errors='ignore')
         filename = f'File{self.next_link_index + 1}-{re.sub(r"[#%&{}\\<>*?/ $!'\":@+`|=.]", '_', response.url)}.html'
         with open(os.path.join(self.output_dir, filename), 'w', encoding=encoding) as f:
             f.write(html_content)
