@@ -12,16 +12,22 @@ for filename in html_files:
         html_content = file.read()
         soup = BeautifulSoup(html_content, "html.parser")
 
-        titles = soup.find_all('title')
-        paragraphs = soup.find_all('p')
+        title = soup.find('title')
+        body = soup.find('body')
+
+        title_parsed = ""
+        body_parsed = ""
+        if title:
+            title_parsed = title.findAll(text=True, recursive=False)
+        if body:
+            body_parsed = body.findAll(text=True, recursive=False)
 
         results = {
             "filename": filename,
-            "titles": titles,
-            "paragraphs": paragraphs
+            "title": title_parsed,
+            "body": body_parsed
         }
         parsed_contents.append(results)
-        print(parsed_contents)
 
 
 with open(save_filename, "w", encoding="utf-8") as f:
