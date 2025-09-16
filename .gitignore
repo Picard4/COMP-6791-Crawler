@@ -216,3 +216,4 @@ __marimo__/
 .streamlit/secrets.toml
 scrapylab/spiders/parsed_data.txt
 /scrapylab/spiders/HTML-Files
+scrapylab/parsed_data.txt

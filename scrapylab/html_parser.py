@@ -20,7 +20,7 @@ for filename in html_files:
         if title:
             title_parsed = title.findAll(text=True, recursive=False)
         if body:
-            body_parsed = body.findAll(text=True, recursive=False)
+            body_parsed = body.findAll(text=True, recursive=True)
 
         results = {
             "filename": filename,
