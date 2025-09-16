@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from os import listdir
 
-dir_name = "HTML-Files"
+dir_name = "Test-Files"
 files = listdir(f"./{dir_name}")
 html_files = [filename for filename in files if filename.endswith(('.html'))]
 parsed_contents = []
